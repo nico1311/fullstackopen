@@ -1,0 +1,14 @@
+note over browser:
+user types a note and clicks submit
+end note
+
+browser->server: HTTP POST https://studies.cs.helsinki.fi/exampleapp/new_note_spa
+
+note right of server:
+the server saves the note
+end note
+
+note over browser:
+browser appends the new note to the array,
+and redraws the notes
+end note

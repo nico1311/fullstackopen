@@ -1,0 +1,15 @@
+note over browser:
+user types a note and clicks submit
+end note
+
+browser->server: HTTP POST https://studies.cs.helsinki.fi/exampleapp/new_note
+
+note right of server:
+the server saves the note
+end note
+
+server-->browser: HTTP 302 (redirect) to https://studies.cs.helsinki.fi/exampleapp/notes
+
+note over browser:
+the browser loads the /notes page again
+end note
