@@ -1,59 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import {
-  getAllContacts,
-  createContact,
-  updateContact,
-  deleteContact
-} from './services/phonebook';
-
-const NewContactForm = ({newName, newNumber, onInputChange, addContact}) => {
-  return(
-    <form onSubmit={addContact}>
-      <div>
-      name: <input id="name" value={newName} onChange={onInputChange} />
-      </div>
-      <div>
-      number: <input id="number" value={newNumber} onChange={onInputChange} />
-      </div>
-      <div>
-      <button type="submit">add</button>
-      </div>
-    </form>
-  )
-};
-
-const ContactList = ({persons, filter, removeContact}) => {
-  if (filter.trim()) {
-    persons = persons.filter((person) => person.name.toLowerCase().includes(filter.toLowerCase()));
-  }
-  return(
-    <ul>
-      {persons.map((person) => {
-        return <li key={person.id}>
-          <b>{person.name}</b>: {person.number}&nbsp;
-          <button onClick={() => removeContact(person.id)}>delete</button>
-        </li>
-      })}
-    </ul>
-  );
-};
-
-const Filter = ({filter, onChange}) => {
-  return(
-    <div>
-      Search filter: <input value={filter} onChange={onChange} />
-    </div>
-  )
-};
+import { ContactList, Filter, Message, NewContactForm } from './components';
+import { getAllContacts, createContact, updateContact, deleteContact } from './services/phonebook';
+import './app.css';
 
 const App = () => {
   const [ persons, setPersons ] = useState([]);
   const [ newName, setNewName ] = useState(''),
     [ newNumber, setNewNumber ] = useState(''),
     [ filter, setFilter ] = useState('');
+  const [ message, setMessage ] = useState({});
 
   useEffect(() => {
-    getAllContacts().then((data) => setPersons(data));
+    getAllContacts().then((data) => setPersons(data)).catch((err) => {
+      setMessage({
+        text: `Could not fetch contact list.`,
+        style: 'error'
+      });
+    });
   }, []);
 
   const onInputChange = ({target}) => {
@@ -85,6 +48,17 @@ const App = () => {
           number: newNumber
         }).then((data) => {
           setPersons(persons.map((person) => person.id === result.id ? data : person));
+          setMessage({
+            text: `Updated ${data.name}'s number`,
+            style: 'success'
+          });
+          setTimeout(() => setMessage({}), 2500);
+        }).catch((err) => {
+          setMessage({
+            text: `Cannot update ${result.name}'s number: ${err.message}`,
+            style: 'error'
+          });
+          setTimeout(() => setMessage({}), 2500);
         });
       } else return;
     } else {
@@ -94,7 +68,18 @@ const App = () => {
       }
 
       createContact(newPerson).then((newContact) => {
-        setPersons(persons.concat(newContact))
+        setPersons(persons.concat(newContact));
+        setMessage({
+          text: `Added ${newName} to the phonebook`,
+          style: 'success'
+        });
+        setTimeout(() => setMessage({}), 2500);
+      }).catch((err) => {
+        setMessage({
+          text: `Cannot add ${newName}: ${err.message}`,
+          style: 'error'
+        });
+        setTimeout(() => setMessage({}), 2500);        
       });      
     }
 
@@ -112,14 +97,26 @@ const App = () => {
     if (window.confirm(`Delete ${toRemove.name}?`)) {
       deleteContact(id).then(() => {
         setPersons(persons.filter((item) => item.id !== id));
+        setMessage({
+          text: `Removed ${toRemove.name} from the phonebook`,
+          style: 'success'
+        });
+        setTimeout(() => setMessage({}), 2500);
+      }).catch((err) => {
+        setMessage({
+          text: `Cannot remove ${toRemove.name}: ${err.message}`,
+          style: 'error'
+        });
+        setTimeout(() => setMessage({}), 2500);        
       });
     }
-
   }
 
   return (
     <div>
       <h2>Phonebook</h2>
+
+      {message.text ? <Message text={message.text} style={message.style} /> : ''}
 
       <Filter filter={filter} onChange={onFilterChange} />
       <br />
@@ -130,7 +127,7 @@ const App = () => {
       <h2>Numbers</h2>
       <ContactList persons={persons} filter={filter} removeContact={removeContact} />
     </div>
-  )
+  );
 };
 
 export default App;
