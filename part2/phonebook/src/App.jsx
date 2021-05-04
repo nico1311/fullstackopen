@@ -1,5 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import {
+  getAllContacts,
+  createContact,
+  updateContact,
+  deleteContact
+} from './services/phonebook';
 
 const NewContactForm = ({newName, newNumber, onInputChange, addContact}) => {
   return(
@@ -17,14 +22,17 @@ const NewContactForm = ({newName, newNumber, onInputChange, addContact}) => {
   )
 };
 
-const ContactList = ({persons, filter}) => {
+const ContactList = ({persons, filter, removeContact}) => {
   if (filter.trim()) {
     persons = persons.filter((person) => person.name.toLowerCase().includes(filter.toLowerCase()));
   }
   return(
     <ul>
       {persons.map((person) => {
-        return <li key={person.name}>{person.name}: {person.number}</li>
+        return <li key={person.id}>
+          <b>{person.name}</b>: {person.number}&nbsp;
+          <button onClick={() => removeContact(person.id)}>delete</button>
+        </li>
       })}
     </ul>
   );
@@ -40,16 +48,12 @@ const Filter = ({filter, onChange}) => {
 
 const App = () => {
   const [ persons, setPersons ] = useState([]);
-
-
   const [ newName, setNewName ] = useState(''),
     [ newNumber, setNewNumber ] = useState(''),
     [ filter, setFilter ] = useState('');
 
   useEffect(() => {
-    axios.get('http://localhost:3001/persons').then(({data}) => {
-      setPersons(data);
-    });
+    getAllContacts().then((data) => setPersons(data));
   }, []);
 
   const onInputChange = ({target}) => {
@@ -74,16 +78,44 @@ const App = () => {
     event.preventDefault();
     if (!newName || !newNumber) return;
     const result = persons.find((person) => person.name === newName);
-    if (result) return alert(`${result.name} is already on the phonebook.`);
-    const newPerson = {
-      name: newName,
-      number: newNumber
+    if (result) {
+      if (window.confirm(`${result.name} is already on the phonebook. Replace the number?`)) {
+        updateContact(result.id, {
+          name: result.name,
+          number: newNumber
+        }).then((data) => {
+          setPersons(persons.map((person) => person.id === result.id ? data : person));
+        });
+      } else return;
+    } else {
+      const newPerson = {
+        name: newName,
+        number: newNumber
+      }
+
+      createContact(newPerson).then((newContact) => {
+        setPersons(persons.concat(newContact))
+      });      
     }
 
-    setPersons(persons.concat(newPerson));
     setNewName('');
     setNewNumber('');
   };
+
+  const removeContact = (id) => {
+    const toRemove = persons.find((item) => item.id === id);
+    if (!toRemove) {
+      console.error(`No contact with id ${id}`);
+      return;
+    }
+
+    if (window.confirm(`Delete ${toRemove.name}?`)) {
+      deleteContact(id).then(() => {
+        setPersons(persons.filter((item) => item.id !== id));
+      });
+    }
+
+  }
 
   return (
     <div>
@@ -96,7 +128,7 @@ const App = () => {
         onInputChange={onInputChange} addContact={addContact} />
 
       <h2>Numbers</h2>
-      <ContactList persons={persons} filter={filter} />
+      <ContactList persons={persons} filter={filter} removeContact={removeContact} />
     </div>
   )
 };
